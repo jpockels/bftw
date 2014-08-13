@@ -5,6 +5,8 @@ from passlib.context import CryptContext
 from flask import Flask, jsonify, request
 from flask.ext.sqlalchemy import SQLAlchemy
 
+dotenv.read_dotenv()
+
 app = Flask(__name__)
 
 #config key
@@ -272,9 +274,12 @@ def register():
         errors['email'] = 'Email is required.'
     if not password:
         errors['password'] = 'Password is required.'
+    if email and User.find_by_email(email):
+        errors['email']='Email is already taken.'
+
     if errors:
         return jsonify({'errors': errors}), 400
-
+        
     user = User.create(email, password)
 
     user_data = {
@@ -282,8 +287,36 @@ def register():
         'email': user.email,
         'token': user.get_auth_token()
     }
+    return jsonify(user_data), 201
 
-    return jsonify(user_data)
+#CHANGE THIS WITH THE COMPLETE ONE
+@app.route('/api/v1/songs/<int:song_id>', methods=[''])
+@auth_token_required
+def song(song_id):
+    song = Song.get(song_id)
+    is_favorited = None
+
+if not song:
+    return jsonify({'error': 'Song not found'})
+    if request.method == 'PUT':
+        data = request.get_json() or {}
+        data_song = data.get('song') or {}
+        favorite = data_song.get('favorite')
+    if favorite is not None:
+        is_favorite = song.set_favorite(g.user, favorite)
+        if is_favorited is None:
+        is_favorited = song.is_favorited(g.user)
+
+song_data = {
+    'id': song.id,
+    'name': song.name,
+    'almbum': song.album.id,
+    'favoritte': i_favorited,
+    'duration': song.duration,
+    'url': song.url
+}
+
+return = jsonify('
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True)
